@@ -1,0 +1,5 @@
+*.backup
+.terraform
+secret.auto.tfvars
+_build
+.pytest_cache
