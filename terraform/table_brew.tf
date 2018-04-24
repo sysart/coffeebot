@@ -3,7 +3,7 @@ resource "aws_dynamodb_table" "brews" {
   read_capacity  = 1
   write_capacity = 1
   hash_key       = "coffeemakerId"
-  range_key      = "start"
+  range_key      = "startTime"
 
   attribute {
     name = "coffeemakerId"
@@ -11,7 +11,7 @@ resource "aws_dynamodb_table" "brews" {
   }
 
   attribute {
-    name = "start"
+    name = "startTime"
     type = "S"
   }
 }

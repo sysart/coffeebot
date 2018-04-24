@@ -1,17 +1,13 @@
 import json
+from os import environ
 from botocore.vendored import requests
-
-# TODO: this cannot go into git!
-slack_urls = {
-    'Hki1': "TODO"
-}
 
 # TODO: create log group
 # TODO: add cloudwatch trigger
 
 def notify_slack(coffeemaker_id, message):
 
-    response = requests.post(slack_urls[coffeemaker_id], 
+    response = requests.post(environ['SLACK_URL_' + coffeemaker_id.upper()],
         data=json.dumps({'text': message}),
         headers={'Content-Type': 'application/json'}
     )

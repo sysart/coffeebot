@@ -43,6 +43,18 @@ resource "aws_iam_role_policy" "lambda_process_coffee_event_policy" {
       "Resource": [
         "${aws_dynamodb_table.brews.arn}"
       ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents",
+          "logs:DescribeLogStreams"
+      ],
+        "Resource": [
+          "arn:aws:logs:*:*:*"
+      ]
     }
   ]
 }
@@ -61,10 +73,30 @@ resource "aws_lambda_function" "process_coffee_event" {
     variables = {
       DYNAMODB_REGION       = "${var.region}"
       DYNAMODB_BREW_TABLE   = "${aws_dynamodb_table.brews.name}"
+      SLACK_URL_HKI1        = "${var.slack_url_hki1}"
     }
   }
 
   tags = { 
     version = "${local.version}"
   }
+}
+
+resource "aws_cloudwatch_event_rule" "every_minute" {
+  name = "${local.resource_prefix}_process_coffee_event_timed_trigger"
+  description = "Fires every minute"
+  schedule_expression = "rate(1 minute)"
+}
+
+resource "aws_cloudwatch_event_target" "check_coffeemaker_status" {
+  rule = "${aws_cloudwatch_event_rule.every_minute.name}"
+  arn = "${aws_lambda_function.process_coffee_event.arn}"
+}
+
+resource "aws_lambda_permission" "allow_cloudwatch_to_call_process_coffee_event" {
+  statement_id = "AllowExecutionFromCloudWatch"
+  action = "lambda:InvokeFunction"
+  function_name = "${aws_lambda_function.process_coffee_event.function_name}"
+  principal = "events.amazonaws.com"
+  source_arn = "${aws_cloudwatch_event_rule.every_minute.arn}"
 }

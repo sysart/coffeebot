@@ -48,6 +48,18 @@ resource "aws_iam_role_policy" "lambda_process_button_event_policy" {
       "Resource": [
         "${aws_lambda_function.process_coffee_event.arn}"
       ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents",
+          "logs:DescribeLogStreams"
+      ],
+        "Resource": [
+          "arn:aws:logs:*:*:*"
+      ]
     }
   ]
 }

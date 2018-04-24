@@ -20,11 +20,11 @@ def create_table():
     return conn.create_table(TableName=os.environ['DYNAMODB_BREW_TABLE'],
     KeySchema=[ 
         { 'AttributeName': 'coffeemakerId', 'KeyType': 'HASH' },
-        { 'AttributeName': 'start', 'KeyType': 'RANGE' }
+        { 'AttributeName': 'startTime', 'KeyType': 'RANGE' }
     ],
     AttributeDefinitions=[ 
         { 'AttributeName': 'coffeemakerId','AttributeType': 'S' },
-        { 'AttributeName': 'start', 'AttributeType': 'S' }
+        { 'AttributeName': 'startTime', 'AttributeType': 'S' }
     ],ProvisionedThroughput=
         { 'ReadCapacityUnits': 10,'WriteCapacityUnits': 10 }
     )
@@ -54,7 +54,7 @@ def test_start():
 def test_end():
     table = create_table()
     start = handler.format_timestamp(datetime.today() - timedelta(hours=3))
-    table.put_item(Item={'coffeemakerId': 'Hki1','start': start,'end': None})
+    table.put_item(Item={'coffeemakerId': 'Hki1','startTime': start})
 
     event_consumer = EventConsumer()
     handler.handler({ 'serialNumber': 'G030PT025262W2X0', 'clickType': 'SINGLE'}, {}, event_consumer.consume)
@@ -78,7 +78,7 @@ def test_end_when_already_ended():
     start = handler.format_timestamp(datetime.today() - timedelta(hours=3))
     end = handler.format_timestamp(datetime.today() - timedelta(hours=2))
 
-    table.put_item(Item={'coffeemakerId': 'Hki1','start': start,'end': end})
+    table.put_item(Item={'coffeemakerId': 'Hki1','startTime': start,'endTime': end})
 
     event_consumer = EventConsumer()
     handler.handler({ 'serialNumber': 'G030PT025262W2X0', 'clickType': 'SINGLE'}, {}, event_consumer.consume)
