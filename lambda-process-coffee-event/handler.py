@@ -29,15 +29,14 @@ def format_timestamp(ts):
 def start_brew(table, slack_event_consumer, coffeemaker_id, start_time):
     table.put_item(Item={
         'coffeemakerId': coffeemaker_id,
-        'start': start_time,
-        'end': None
+        'startTime': start_time
     })
     slack_event_consumer(coffeemaker_id, slack_messages['brew_started'])
 
 def end_brew(table, slack_event_consumer, coffeemaker_id, start_time, end_time):
     table.update_item(
-        Key={'coffeemakerId': coffeemaker_id, 'start': start_time},
-        UpdateExpression="set end = :end",
+        Key={'coffeemakerId': coffeemaker_id, 'startTime': start_time},
+        UpdateExpression="set endTime = :end",
         ExpressionAttributeValues={':end': end_time})
     slack_event_consumer(coffeemaker_id, slack_messages['brew_ended'])
 
@@ -52,14 +51,18 @@ def check_coffeemaker_status(table, slack_event_consumer, coffeemaker_id, config
     brew_ready = format_timestamp(now - timedelta(seconds=config['brew_time']))
     power_off = format_timestamp(now - timedelta(seconds=config['power_off_time']))
 
-    if brew.get('end', None) == None and brew['start'] <= power_off:
+    if brew.get('endTime', None) == None and brew['startTime'] <= power_off:
         table.update_item(
-            Key={'coffeemakerId': coffeemaker_id, 'start': brew['start']},
-            UpdateExpression="set end = :end",
+            Key={'coffeemakerId': coffeemaker_id, 'startTime': brew['startTime']},
+            UpdateExpression="set endTime = :end",
             ExpressionAttributeValues={':end': format_timestamp(now)})
         slack_event_consumer(coffeemaker_id, slack_messages['brew_timeout'])
 
-    elif brew.get('end', None) == None and brew['start'] <= brew_ready:
+    elif brew.get('doneTime', None) == None and brew['startTime'] <= brew_ready:
+        table.update_item(
+            Key={'coffeemakerId': coffeemaker_id, 'startTime': brew['startTime']},
+            UpdateExpression="set doneTime = :done",
+            ExpressionAttributeValues={':done': format_timestamp(now)})
         slack_event_consumer(coffeemaker_id, slack_messages['coffee_ready'])
 
 
@@ -85,7 +88,7 @@ def handler(event, context, slack_event_consumer = notify_slack):
         }
     """
     print("Received event:", event)
-    event_type = event['eventType']
+    event_type = event.get('eventType')
 
     table = boto3.resource('dynamodb', region_name=dynamo_region).Table(dynamo_brew_table)
 
@@ -93,5 +96,6 @@ def handler(event, context, slack_event_consumer = notify_slack):
     elif event_type == 'end': end_brew(table, slack_event_consumer, event['coffeemakerId'], event['startTime'], event['endTime'])
     elif event_type == 'check-status': check_status(slack_event_consumer)
     elif event_type == 'out-of-coffee': out_of_coffee(slack_event_consumer, event['coffeemakerId'])
+    elif event.get('source') == 'aws.events': check_status(slack_event_consumer)
     else: raise Exception("Unknown eventType:", event_type)
 

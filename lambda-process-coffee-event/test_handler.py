@@ -12,11 +12,11 @@ def createTable():
     return conn.create_table(TableName=os.environ['DYNAMODB_BREW_TABLE'],
     KeySchema=[ 
         { 'AttributeName': 'coffeemakerId', 'KeyType': 'HASH' },
-        { 'AttributeName': 'start', 'KeyType': 'RANGE' }
+        { 'AttributeName': 'startTime', 'KeyType': 'RANGE' }
     ],
     AttributeDefinitions=[ 
         { 'AttributeName': 'coffeemakerId','AttributeType': 'S' },
-        { 'AttributeName': 'start', 'AttributeType': 'S' }
+        { 'AttributeName': 'startTime', 'AttributeType': 'S' }
     ],ProvisionedThroughput=
         { 'ReadCapacityUnits': 10,'WriteCapacityUnits': 10 }
     )
@@ -35,7 +35,7 @@ def getItems(table,coffeemaker_id):
     return response['Items']
 
 def getItem(table, coffeemaker_id, start):
-    return table.get_item(Key={'coffeemakerId': coffeemaker_id, 'start': start})['Item']
+    return table.get_item(Key={'coffeemakerId': coffeemaker_id, 'startTime': start})['Item']
 
 def test_wrong_event_structure():
     with pytest.raises(Exception):
@@ -61,8 +61,8 @@ def test_start_brew():
         }, {}, slackEventConsumer.consume)
     items = getItems(table, 'Hki1')
     assert len(items) == 1
-    assert items[0]['start'] == startTime
-    assert items[0].get('end', None) == None
+    assert items[0]['startTime'] == startTime
+    assert items[0].get('endTime', None) == None
 
     assert len(slackEventConsumer.events) == 1
     assert slackEventConsumer.events[0]['coffeemaker_id'] == 'Hki1'
@@ -76,7 +76,7 @@ def test_end_brew():
     startTime = handler.format_timestamp(datetime.now())
     endTime = handler.format_timestamp(datetime.now())
     
-    table.put_item(Item={'coffeemakerId': 'Hki1','start': startTime,'end': endTime})
+    table.put_item(Item={'coffeemakerId': 'Hki1','startTime': startTime,'endTime': endTime})
 
     handler.handler({ 
             'coffeemakerId': 'Hki1', 
@@ -86,8 +86,8 @@ def test_end_brew():
         }, {}, slackEventConsumer.consume)
     items = getItems(table, 'Hki1')
     assert len(items) == 1
-    assert items[0]['start'] == startTime
-    assert items[0]['end'] == endTime
+    assert items[0]['startTime'] == startTime
+    assert items[0]['endTime'] == endTime
 
     assert len(slackEventConsumer.events) == 1
     assert slackEventConsumer.events[0]['coffeemaker_id'] == 'Hki1'
@@ -101,7 +101,7 @@ def test_brew_timed_out():
 
     startTime = handler.format_timestamp(datetime.now() - timedelta(seconds=2400))
     
-    table.put_item(Item={'coffeemakerId': 'Hki1','start': startTime,'end': None})
+    table.put_item(Item={'coffeemakerId': 'Hki1','startTime': startTime})
 
     handler.handler(
         { 'eventType': "check-status"}, 
@@ -109,8 +109,8 @@ def test_brew_timed_out():
     
     items = getItems(table, 'Hki1')
     assert len(items) == 1
-    assert items[0]['start'] == startTime
-    assert len(items[0]['end']) == 23
+    assert items[0]['startTime'] == startTime
+    assert len(items[0]['endTime']) == 23
 
     assert len(slackEventConsumer.events) == 1
     assert slackEventConsumer.events[0]['coffeemaker_id'] == 'Hki1'
@@ -123,7 +123,7 @@ def test_brew_ready():
 
     startTime = handler.format_timestamp(datetime.now() - timedelta(seconds=300))
     
-    table.put_item(Item={'coffeemakerId': 'Hki1','start': startTime,'end': None})
+    table.put_item(Item={'coffeemakerId': 'Hki1','startTime': startTime})
 
     handler.handler(
         { 'eventType': "check-status"}, 
@@ -131,8 +131,8 @@ def test_brew_ready():
     
     items = getItems(table, 'Hki1')
     assert len(items) == 1
-    assert items[0]['start'] == startTime
-    assert items[0].get('end', None) == None
+    assert items[0]['startTime'] == startTime
+    assert items[0].get('endTime', None) == None
 
     assert len(slackEventConsumer.events) == 1
     assert slackEventConsumer.events[0]['coffeemaker_id'] == 'Hki1'
@@ -146,8 +146,8 @@ def test_brew_ready_and_timeout():
     brewedInOulu = handler.format_timestamp(datetime.now() - timedelta(seconds=7800))
     brewedInHki = handler.format_timestamp(datetime.now() - timedelta(seconds=400))
     
-    table.put_item(Item={'coffeemakerId': 'Oulu1','start': brewedInOulu,'end': None})
-    table.put_item(Item={'coffeemakerId': 'Hki1','start': brewedInHki,'end': None})
+    table.put_item(Item={'coffeemakerId': 'Oulu1','startTime': brewedInOulu})
+    table.put_item(Item={'coffeemakerId': 'Hki1','startTime': brewedInHki})
 
     handler.handler(
         { 'eventType': "check-status"}, 

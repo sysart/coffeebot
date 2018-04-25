@@ -2,6 +2,7 @@
 # instead, define values for these in secret.auto.tfvars
 variable "access_key" {}
 variable "secret_key" {}
+variable "slack_url_hki1" {}
 
 # default region for "everyting"
 variable "region" {

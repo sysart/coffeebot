@@ -4,7 +4,7 @@ set -e
 rm -rf _build
 mkdir _build
 
-version=$(git describe --tags --long)
+version=$(git describe --tags --long --always)
 echo ">>> Building version: $version"
 echo "$version" > _build/version.info
 
