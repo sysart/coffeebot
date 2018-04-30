@@ -51,11 +51,25 @@ def handler(event, context, coffee_event_consumer=invoke_coffee_event_lambda):
     coffeemaker_id = iotButtonConfig[serial]
 
     if clickType == 'DOUBLE':
-        coffee_event_consumer({
-            'coffeemakerId': coffeemaker_id,
-            'eventType': 'start',
-            'startTime': format_timestamp(datetime.now())
-        })
+        brew = get_current_brew(coffeemaker_id)
+        if brew is None:
+            coffee_event_consumer({
+                'coffeemakerId': coffeemaker_id,
+                'eventType': 'start',
+                'startTime': format_timestamp(datetime.now())
+            })
+        else:
+            coffee_event_consumer({
+                'coffeemakerId': coffeemaker_id,
+                'eventType': 'end',
+                'startTime': brew['startTime'],
+                'endTime': format_timestamp(datetime.now())
+            })
+            coffee_event_consumer({
+                'coffeemakerId': coffeemaker_id,
+                'eventType': 'start',
+                'startTime': format_timestamp(datetime.now())
+            })
 
     elif clickType == 'LONG':
         coffee_event_consumer({
