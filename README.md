@@ -54,3 +54,14 @@ terraform workspace select my_dev
 3) Use terraform apply to deploy the environment. Before confirming the terraform plan CAREFULLY CHECK the suggested changes. Don't say we did not warn you ;)
 ´
 terraform apply --var-file=~/secret.tfvars
+
+4) Configure the iot buttons you want to use and add the triggers to the process button event lambda function
+
+Things left to do
+================
+
+####Improve deployment 
+Currently when deploying the process button event lambda it will not get the iot button trigger. This means that after each deploy you will manually need to add the trigger for the buttons you want to use. We could not figure out how to create the trigger correctly by using terraform, which is why we currently have to do it manually. The goal would be to be able to create the required button triggers automatically.
+
+####Use for the stored data
+We are storing all of the button events in dynamodb. Currently we do nothing with the data. The goal with this data would be to firstly visualize the data somehow, using something like to Amazon Quicksight. The second thing we would like to do is to add slash commands for the slack bot. Using a slash command should call an api gateway which triggers a lambda function which in turn fetches the required data from dynamodb. Users should be able to check how many brews have been made withing a certain time period.
